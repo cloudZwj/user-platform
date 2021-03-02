@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.commons.lang.ClassUtils.wrapperToPrimitive;
+import static org.geektimes.projects.user.sql.DBConnectionManager.CREATE_USERS_TABLE_DDL_SQL;
 
 public class DatabaseUserRepository implements UserRepository {
 
@@ -31,19 +32,56 @@ public class DatabaseUserRepository implements UserRepository {
 
     public static final String QUERY_ALL_USERS_DML_SQL = "SELECT id,name,password,email,phoneNumber FROM users";
 
-    private final DBConnectionManager dbConnectionManager;
+//    private final DBConnectionManager dbConnectionManager;
 
-    public DatabaseUserRepository(DBConnectionManager dbConnectionManager) {
-        this.dbConnectionManager = dbConnectionManager;
+    private Connection connection;
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
     }
 
+//    public DatabaseUserRepository(DBConnectionManager dbConnectionManager) {
+//        this.dbConnectionManager = dbConnectionManager;
+//    }
+
     private Connection getConnection() {
-        return dbConnectionManager.getConnection();
+        try {
+            Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+            Driver driver = DriverManager.getDriver("jdbc:derby:~/db/user-platform;create=true");
+            Connection connection = driver.connect("jdbc:derby:~/db/user-platform;create=true", new Properties());
+            setConnection(connection);
+            Statement statement = connection.createStatement();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getCause());
+        }
+        return connection;
+    }
+
+    public void releaseConnection() {
+        if (this.connection != null) {
+            try {
+                this.connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e.getCause());
+            }
+        }
     }
 
     @Override
     public boolean save(User user) {
-        return false;
+        try {
+            Connection connection = getConnection();
+            PreparedStatement statement = connection.prepareStatement(INSERT_USER_DML_SQL);
+            statement.setString(1, user.getName());
+            statement.setString(2, user.getPassword());
+            statement.setString(3, user.getEmail());
+            statement.setString(4, user.getPhoneNumber());
+
+            return statement.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getCause());
+        }
+
     }
 
     @Override

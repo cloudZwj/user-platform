@@ -58,10 +58,7 @@ public class FrontControllerServlet extends HttpServlet {
             Class<?> controllerClass = controller.getClass();
             Path pathFromClass = controllerClass.getAnnotation(Path.class);
             String requestPath = pathFromClass.value();
-            if (!requestPath.endsWith("/")) {
-                requestPath += "/";
-            }
-            Method[] publicMethods = controllerClass.getMethods();
+            Method[] publicMethods = controllerClass.getDeclaredMethods();
             // 处理方法支持的 HTTP 方法集合
             for (Method method : publicMethods) {
                 Set<String> supportedHttpMethods = findSupportedHttpMethods(method);
@@ -141,7 +138,8 @@ public class FrontControllerServlet extends HttpServlet {
 
                     if (controller instanceof PageController) {
                         PageController pageController = (PageController) controller;
-                        String viewPath = pageController.execute(request, response);
+                        String viewPath = (String) handlerMethodInfo.getHandlerMethod().invoke(pageController, request, response);
+//                        String viewPath = pageController.execute(request, response);
                         // 页面请求 forward
                         // request -> RequestDispatcher forward
                         // RequestDispatcher requestDispatcher = request.getRequestDispatcher(viewPath);
